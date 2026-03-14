@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customer Retention & Churn Analysis — 2023–2024</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Mulish:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f3ee;
+    --surface: #ffffff;
+    --surface2: #faf9f6;
+    --border: #e8e4db;
+    --red: #e8412a;
+    --green: #1a7a4a;
+    --blue: #1a3a7a;
+    --amber: #c47c0a;
+    --purple: #6a2a8a;
+    --text: #1a1714;
+    --muted: #8a857a;
+    --font-head: 'Syne', sans-serif;
+    --font-body: 'Mulish', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  header {
+    background: var(--text);
+    color: var(--bg);
+    padding: 52px 52px 44px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 24px;
+  }
+
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #8a8a7a;
+    margin-bottom: 12px;
+  }
+
+  header h1 {
+    font-family: var(--font-head);
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 800;
+    line-height: 1.1;
+    color: #f5f3ee;
+  }
+
+  header h1 span { color: var(--red); }
+
+  .header-meta {
+    text-align: right;
+  }
+
+  .header-meta p {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: #6a6a5a;
+    line-height: 2;
+  }
+
+  main {
+    padding: 44px 52px;
+    display: flex;
+    flex-direction: column;
+    gap: 36px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Section label */
+  .sec-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .sec-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* KPI Grid */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+
+  .kpi {
+    background: var(--surface);
+    padding: 28px 24px;
+    position: relative;
+  }
+
+  .kpi-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+
+  .kpi-value {
+    font-family: var(--font-head);
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--kpi-color, var(--text));
+  }
+
+  .kpi-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  .kpi-bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--kpi-color, var(--border));
+  }
+
+  /* Chart panels */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--border); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 2px; background: var(--border); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .grid-full { background: var(--surface); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+
+  .panel {
+    background: var(--surface);
+    padding: 28px;
+  }
+
+  .panel h3 {
+    font-family: var(--font-head);
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .panel p.desc {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 22px;
+  }
+
+  /* Plan table */
+  .plan-table { width: 100%; border-collapse: collapse; }
+  .plan-table th {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .plan-table td {
+    padding: 14px;
+    font-size: 13px;
+    border-bottom: 1px solid var(--border);
+  }
+  .plan-table tr:last-child td { border-bottom: none; }
+  .plan-table tr:hover td { background: var(--surface2); }
+
+  .pill {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .pill-red { background: rgba(232,65,42,0.1); color: var(--red); }
+  .pill-green { background: rgba(26,122,74,0.1); color: var(--green); }
+  .pill-amber { background: rgba(196,124,10,0.1); color: var(--amber); }
+  .pill-blue { background: rgba(26,58,122,0.1); color: var(--blue); }
+
+  .churn-bar-wrap { margin-top: 8px; }
+  .churn-bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .churn-bar-label { font-size: 12px; width: 160px; flex-shrink: 0; }
+  .churn-bar-track { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .churn-bar-fill { height: 100%; border-radius: 4px; background: var(--red); }
+  .churn-bar-val { font-family: var(--font-mono); font-size: 11px; color: var(--muted); width: 36px; text-align: right; }
+
+  /* Insights */
+  .insights-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  .insight {
+    background: var(--surface);
+    padding: 28px;
+    border-left: 4px solid var(--i-color, var(--border));
+  }
+
+  .insight .tag {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--i-color);
+    margin-bottom: 12px;
+    display: block;
+  }
+
+  .insight h4 {
+    font-family: var(--font-head);
+    font-size: 17px;
+    font-weight: 700;
+    margin-bottom: 10px;
+    line-height: 1.3;
+  }
+
+  .insight p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.75;
+  }
+
+  /* Recommendations */
+  .reco-list { display: flex; flex-direction: column; gap: 2px; background: var(--border); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+
+  .reco {
+    background: var(--surface);
+    padding: 24px 28px;
+    display: grid;
+    grid-template-columns: 48px 1fr auto;
+    align-items: start;
+    gap: 20px;
+  }
+
+  .reco-num {
+    font-family: var(--font-head);
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--border);
+    line-height: 1;
+    padding-top: 2px;
+  }
+
+  .reco h4 { font-family: var(--font-head); font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .reco p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+
+  .impact {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .impact-high { background: rgba(232,65,42,0.1); color: var(--red); }
+  .impact-med { background: rgba(196,124,10,0.1); color: var(--amber); }
+
+  footer {
+    background: var(--text);
+    color: #6a6a5a;
+    padding: 24px 52px;
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  footer p { font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; }
+
+  @media (max-width: 900px) {
+    main, header, footer { padding-left: 20px; padding-right: 20px; }
+    .kpi-grid, .grid-2, .grid-3, .insights-grid { grid-template-columns: 1fr; }
+    .reco { grid-template-columns: 36px 1fr; }
+    .reco .impact { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="eyebrow">Future Interns · Data Science & Analytics · Task 2 · 2026</div>
+    <h1>Customer Retention<br>& <span>Churn</span> Analysis</h1>
+  </div>
+  <div class="header-meta">
+    <p>Dataset: SaaS Subscription Platform</p>
+    <p>Period: January 2023 – December 2024</p>
+    <p>Customers Analysed: 1,000</p>
+    <p>Tool: Python · Chart.js · HTML/CSS</p>
+  </div>
+</header>
+
+<main>
+
+  <!-- KPIs -->
+  <div>
+    <div class="sec-label">Overview Metrics</div>
+    <div class="kpi-grid">
+      <div class="kpi" style="--kpi-color: var(--red)">
+        <div class="kpi-bar"></div>
+        <div class="kpi-label">Churn Rate</div>
+        <div class="kpi-value">32.2%</div>
+        <div class="kpi-sub">322 customers lost</div>
+      </div>
+      <div class="kpi" style="--kpi-color: var(--green)">
+        <div class="kpi-bar"></div>
+        <div class="kpi-label">Retention Rate</div>
+        <div class="kpi-value">67.8%</div>
+        <div class="kpi-sub">678 active customers</div>
+      </div>
+      <div class="kpi" style="--kpi-color: var(--blue)">
+        <div class="kpi-bar"></div>
+        <div class="kpi-label">Avg. Customer LTV</div>
+        <div class="kpi-value">$767</div>
+        <div class="kpi-sub">Across all plans</div>
+      </div>
+      <div class="kpi" style="--kpi-color: var(--amber)">
+        <div class="kpi-bar"></div>
+        <div class="kpi-label">Avg. Tenure (Churned)</div>
+        <div class="kpi-value">184d</div>
+        <div class="kpi-sub">vs 440d for retained</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Churn trend + reasons -->
+  <div>
+    <div class="sec-label">Churn Trends & Causes</div>
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Monthly Churn Rate by Cohort</h3>
+        <p class="desc">Churn rate per signup cohort — earlier cohorts had more time to churn</p>
+        <div style="height:280px"><canvas id="cohortChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Top Churn Reasons</h3>
+        <p class="desc">Self-reported reasons from churned customers (322 total)</p>
+        <div class="churn-bar-wrap" style="margin-top:16px">
+          <div class="churn-bar-row">
+            <span class="churn-bar-label">Price too high</span>
+            <div class="churn-bar-track"><div class="churn-bar-fill" style="width:63%"></div></div>
+            <span class="churn-bar-val">63</span>
+          </div>
+          <div class="churn-bar-row">
+            <span class="churn-bar-label">Budget cut</span>
+            <div class="churn-bar-track"><div class="churn-bar-fill" style="width:58%"></div></div>
+            <span class="churn-bar-val">58</span>
+          </div>
+          <div class="churn-bar-row">
+            <span class="churn-bar-label">Lack of features</span>
+            <div class="churn-bar-track"><div class="churn-bar-fill" style="width:55%"></div></div>
+            <span class="churn-bar-val">55</span>
+          </div>
+          <div class="churn-bar-row">
+            <span class="churn-bar-label">Poor support</span>
+            <div class="churn-bar-track"><div class="churn-bar-fill" style="width:53%"></div></div>
+            <span class="churn-bar-val">53</span>
+          </div>
+          <div class="churn-bar-row">
+            <span class="churn-bar-label">Switched to competitor</span>
+            <div class="churn-bar-track"><div class="churn-bar-fill" style="width:47%"></div></div>
+            <span class="churn-bar-val">47</span>
+          </div>
+          <div class="churn-bar-row">
+            <span class="churn-bar-label">No longer needed</span>
+            <div class="churn-bar-track"><div class="churn-bar-fill" style="width:46%"></div></div>
+            <span class="churn-bar-val">46</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Plan analysis -->
+  <div>
+    <div class="sec-label">Plan & Segment Analysis</div>
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Churn Rate by Subscription Plan</h3>
+        <p class="desc">Free plan customers churn at 5× the rate of Enterprise customers</p>
+        <div style="height:260px"><canvas id="planChurnChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Plan Performance Summary</h3>
+        <p class="desc">Churn rate and average LTV per plan</p>
+        <table class="plan-table" style="margin-top:8px">
+          <thead>
+            <tr>
+              <th>Plan</th>
+              <th>Customers</th>
+              <th>Churned</th>
+              <th>Churn Rate</th>
+              <th>Avg LTV</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Enterprise</strong></td>
+              <td>87</td>
+              <td>5</td>
+              <td><span class="pill pill-green">5.7%</span></td>
+              <td><strong>$4,451</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Pro</strong></td>
+              <td>255</td>
+              <td>39</td>
+              <td><span class="pill pill-blue">15.3%</span></td>
+              <td><strong>$1,089</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Basic</strong></td>
+              <td>301</td>
+              <td>97</td>
+              <td><span class="pill pill-amber">32.2%</span></td>
+              <td><strong>$338</strong></td>
+            </tr>
+            <tr>
+              <td><strong>Free</strong></td>
+              <td>357</td>
+              <td>181</td>
+              <td><span class="pill pill-red">50.7%</span></td>
+              <td><strong>$0</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Regional + LTV -->
+  <div>
+    <div class="sec-label">Regional & Lifetime Value Analysis</div>
+    <div class="grid-2">
+      <div class="panel">
+        <h3>Churn Rate by Region</h3>
+        <p class="desc">Latin America has the highest churn at 37.1%; Middle East is the most stable</p>
+        <div style="height:260px"><canvas id="regionChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>Customer Tenure Distribution</h3>
+        <p class="desc">Retained customers stay 2.4× longer than churned customers on average</p>
+        <div style="height:260px"><canvas id="tenureChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Key Insights -->
+  <div>
+    <div class="sec-label">Key Insights</div>
+    <div class="insights-grid">
+      <div class="insight" style="--i-color: var(--red)">
+        <span class="tag">⚠ Critical Risk</span>
+        <h4>Free Plan is a Churn Funnel, Not a Growth Engine</h4>
+        <p>50.7% of Free plan users churn — and they generate $0 LTV. With 357 free users (35.7% of the base), the platform is investing onboarding and infrastructure costs into users who overwhelmingly leave without converting. A structured free-to-paid conversion funnel with feature limits and timely upgrade prompts is urgently needed.</p>
+      </div>
+      <div class="insight" style="--i-color: var(--amber)">
+        <span class="tag">⚡ Opportunity</span>
+        <h4>Pricing & Budget Are the #1 Churn Driver</h4>
+        <p>Combined, "Price too high" (63) and "Budget cut" (58) account for 37.6% of all churn reasons — more than competitor switching and feature gaps combined. This signals a pricing perception problem, not necessarily a value problem. Flexible annual plans, pause options, and downgrade paths could save a significant share of these customers.</p>
+      </div>
+      <div class="insight" style="--i-color: var(--green)">
+        <span class="tag">✦ Retention Driver</span>
+        <h4>Enterprise & Pro Customers Are the Business Foundation</h4>
+        <p>Enterprise customers churn at just 5.7% and generate $4,451 average LTV — 13× higher than Basic. Pro customers at $1,089 LTV and 15.3% churn are also high-value. These two segments represent the most defensible revenue. Dedicated customer success, quarterly business reviews, and proactive check-ins for these users would protect the core revenue base.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recommendations -->
+  <div>
+    <div class="sec-label">Actionable Recommendations</div>
+    <div class="reco-list">
+      <div class="reco">
+        <div class="reco-num">01</div>
+        <div>
+          <h4>Build a Free-to-Paid Conversion Workflow</h4>
+          <p>Introduce in-app upgrade prompts triggered after key actions (e.g., hitting usage limits, saving a project). Add a 14-day Pro trial for free users at the 30-day mark. Goal: convert even 15% of Free users to Basic — this would add ~$156K in annual recurring revenue.</p>
+        </div>
+        <span class="impact impact-high">High Impact</span>
+      </div>
+      <div class="reco">
+        <div class="reco-num">02</div>
+        <div>
+          <h4>Introduce Flexible Pricing: Annual Plans & Pause Option</h4>
+          <p>Since pricing is the top churn reason, offer a discounted annual plan (e.g., 2 months free) and a "pause subscription" feature for budget-cut customers. This directly addresses 37.6% of churn causes and reduces involuntary churn during temporary budget freezes.</p>
+        </div>
+        <span class="impact impact-high">High Impact</span>
+      </div>
+      <div class="reco">
+        <div class="reco-num">03</div>
+        <div>
+          <h4>Deploy Early Churn Warning System for Basic Plan</h4>
+          <p>Basic plan customers churn at 32.2%, and churned customers average only 184 days tenure. Set up automated alerts at day 60 and day 120 for low-engagement Basic users (low login frequency, unresolved support tickets). Trigger a personal outreach or discount offer before they decide to leave.</p>
+        </div>
+        <span class="impact impact-med">Medium Impact</span>
+      </div>
+      <div class="reco">
+        <div class="reco-num">04</div>
+        <div>
+          <h4>Fix Support Quality — It's Causing Direct Revenue Loss</h4>
+          <p>"Poor support" accounts for 53 churns (16.5% of churned customers). Invest in a support SLA — target under 4-hour first response for Pro/Enterprise and under 24 hours for Basic. A monthly support satisfaction score tracked as a KPI would make this measurable and accountable.</p>
+        </div>
+        <span class="impact impact-med">Medium Impact</span>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>Future Interns · Data Science & Analytics Task 2 · 2026 Internship Program</p>
+  <p>Simulated SaaS Dataset · 1,000 Customers · Jan 2023–Dec 2024 · Python + Chart.js</p>
+</footer>
+
+<script>
+Chart.defaults.font.family = "'JetBrains Mono', monospace";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#8a857a';
+
+const RED = '#e8412a', GREEN = '#1a7a4a', BLUE = '#1a3a7a', AMBER = '#c47c0a', PURPLE = '#6a2a8a';
+const BORDER = '#e8e4db';
+
+// 1. Cohort churn rate line chart
+const cohorts = [
+  {m:'Jan 23',r:36.2},{m:'Feb 23',r:38.5},{m:'Mar 23',r:38.9},{m:'Apr 23',r:42.4},
+  {m:'May 23',r:47.2},{m:'Jun 23',r:32.1},{m:'Jul 23',r:38.3},{m:'Aug 23',r:33.9},
+  {m:'Sep 23',r:27.6},{m:'Oct 23',r:32.1},{m:'Nov 23',r:29.5},{m:'Dec 23',r:36.6},
+  {m:'Jan 24',r:32.7},{m:'Feb 24',r:21.6},{m:'Mar 24',r:29.5},{m:'Apr 24',r:28.8},
+  {m:'May 24',r:18.6},{m:'Jun 24',r:18.2}
+];
+
+new Chart(document.getElementById('cohortChart'), {
+  type: 'line',
+  data: {
+    labels: cohorts.map(d => d.m),
+    datasets: [{
+      label: 'Churn Rate %',
+      data: cohorts.map(d => d.r),
+      borderColor: RED,
+      backgroundColor: 'rgba(232,65,42,0.08)',
+      borderWidth: 2,
+      pointRadius: 4,
+      pointBackgroundColor: RED,
+      fill: true,
+      tension: 0.4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + '%' } } },
+    scales: {
+      x: { grid: { color: BORDER }, ticks: { maxRotation: 45 } },
+      y: { grid: { color: BORDER }, ticks: { callback: v => v + '%' }, min: 0, max: 60 }
+    }
+  }
+});
+
+// 2. Plan churn rate
+new Chart(document.getElementById('planChurnChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Enterprise', 'Pro', 'Basic', 'Free'],
+    datasets: [{
+      label: 'Churn Rate %',
+      data: [5.7, 15.3, 32.2, 50.7],
+      backgroundColor: [GREEN, BLUE, AMBER, RED],
+      borderRadius: 4
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + '%' } } },
+    scales: {
+      x: { grid: { color: BORDER } },
+      y: { grid: { color: BORDER }, ticks: { callback: v => v + '%' }, max: 60 }
+    }
+  }
+});
+
+// 3. Region churn
+new Chart(document.getElementById('regionChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Middle East', 'North America', 'Europe', 'Asia Pacific', 'Latin America'],
+    datasets: [{
+      label: 'Churn Rate %',
+      data: [28.3, 31.1, 32.1, 33.0, 37.1],
+      backgroundColor: [GREEN, BLUE, BLUE, AMBER, RED],
+      borderRadius: 4
+    }]
+  },
+  options: {
+    indexAxis: 'y',
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.raw + '%' } } },
+    scales: {
+      x: { grid: { color: BORDER }, ticks: { callback: v => v + '%' }, max: 45 },
+      y: { grid: { color: BORDER } }
+    }
+  }
+});
+
+// 4. Tenure comparison
+new Chart(document.getElementById('tenureChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Churned Customers', 'Retained Customers'],
+    datasets: [{
+      label: 'Avg Tenure (days)',
+      data: [184, 440],
+      backgroundColor: [RED, GREEN],
+      borderRadius: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ctx.raw + ' days' } }
+    },
+    scales: {
+      x: { grid: { color: BORDER } },
+      y: { grid: { color: BORDER }, ticks: { callback: v => v + 'd' } }
+    }
+  }
+});
+</script>
+</body>
+</html>
